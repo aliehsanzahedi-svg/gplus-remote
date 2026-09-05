@@ -10,14 +10,24 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Make gradlew executable & Build
+      - name: Extract zip if present & build
         run: |
+          ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Found zip file: $ZIP_FILE. Extracting..."
+            unzip -o "$ZIP_FILE" -d extracted_project
+            cd extracted_project/* 2>/dev/null || cd extracted_project
+          fi
+          
           GRADLEW_PATH=$(find . -name "gradlew" -type f | head -n 1)
           if [ -z "$GRADLEW_PATH" ]; then
-            echo "Error: gradlew not found!"
+            echo "Error: Could not find gradlew anywhere in repository!"
+            ls -R
             exit 1
           fi
-          cd $(dirname "$GRADLEW_PATH")
+          
+          CD_DIR=$(dirname "$GRADLEW_PATH")
+          cd "$CD_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
       - name: Upload APK
