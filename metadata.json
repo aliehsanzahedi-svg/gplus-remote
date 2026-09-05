@@ -1,0 +1,6 @@
+{
+  "name": "GPlus AC Remote",
+  "description": "Universal Infrared (IR) Remote Control for GPlus Air Conditioners with Gree/NEC protocol support and Material 3 design.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
