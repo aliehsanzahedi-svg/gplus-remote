@@ -10,15 +10,14 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Build project
+      - name: Make gradlew executable & Build
         run: |
           GRADLEW_PATH=$(find . -name "gradlew" -type f | head -n 1)
           if [ -z "$GRADLEW_PATH" ]; then
             echo "Error: gradlew not found!"
             exit 1
           fi
-          DIR=$(dirname "$GRADLEW_PATH")
-          cd "$DIR"
+          cd $(dirname "$GRADLEW_PATH")
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
       - name: Upload APK
