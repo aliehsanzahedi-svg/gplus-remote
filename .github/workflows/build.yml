@@ -10,7 +10,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Generate gradlew and Build APK
+      - name: Generate files and Build APK
         run: |
           ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
           if [ -n "$ZIP_FILE" ]; then
@@ -20,6 +20,10 @@ jobs:
           
           PROJ_DIR=$(find . -name "build.gradle.kts" -o -name "build.gradle" | head -n 1 | xargs dirname)
           cd "$PROJ_DIR"
+          
+          # Create missing env files if needed
+          touch .env
+          touch .env.example
           
           gradle wrapper
           chmod +x gradlew
