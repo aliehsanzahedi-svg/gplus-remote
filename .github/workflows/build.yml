@@ -10,7 +10,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Prepare and Build
+      - name: Prepare Environment and Build
         run: |
           ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
           if [ -n "$ZIP_FILE" ]; then
@@ -18,21 +18,21 @@ jobs:
             cd extracted_project/* 2>/dev/null || cd extracted_project
           fi
           
-          # Find directory containing settings.gradle.kts or build.gradle.kts
           PROJ_DIR=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs dirname)
           cd "$PROJ_DIR"
           
           # Create env files inside project root
           touch .env
           touch .env.example
-          
-          # Also copy to parent directories just in case
           cp .env.example ../ 2>/dev/null || true
           cp .env ../ 2>/dev/null || true
           
           gradle wrapper
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          
+          # Pass headless and memory flags to fix KSP AWT NullPointerException
+          export JAVA_TOOL_OPTIONS="-Djava.awt.headless=true"
+          ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx3072m -Djava.awt.headless=true"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
