@@ -2,15 +2,13 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main, master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -18,71 +16,50 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Find Project and Build
+      - name: Prepare project and Build
         run: |
-          echo "===== Listing root files ====="
+          echo "===== Root files ====="
           ls -la
 
-          # اگر فایل ZIP وجود داشت، استخراج کن
-          ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
-          if [ -n "$ZIP_FILE" ]; then
-            echo "Found ZIP: $ZIP_FILE"
-            unzip -o "$ZIP_FILE" -d extracted
-            cd extracted
-            if [ $(ls -1 | wc -l) -eq 1 ]; then
-              cd $(ls -1)
-            fi
+          # ساخت فایل‌های .env که پروژه بهشون نیاز داره
+          echo "Creating .env files..."
+          touch .env
+          touch .env.example
+          echo "# Environment variables" > .env.example
+          echo "# Environment variables" > .env
+
+          # اگر پروژه داخل پوشه دیگه‌ای بود
+          if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
+            PROJ=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs dirname)
+            echo "Project found in: $PROJ"
+            cd "$PROJ"
+            # فایل‌های .env رو هم به پوشه پروژه کپی کن
+            cp ../.env . 2>/dev/null || true
+            cp ../.env.example . 2>/dev/null || true
           fi
 
-          echo "===== Looking for project root ====="
-          if [ -f "settings.gradle" ] || [ -f "settings.gradle.kts" ]; then
-            PROJ_DIR="."
-          else
-            PROJ_DIR=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs dirname)
-          fi
-
-          echo "Project directory: $PROJ_DIR"
-          cd "$PROJ_DIR"
-
-          echo "===== Files in project root ====="
+          echo "===== Project files ====="
           ls -la
 
-          # اگر gradlew وجود نداشت، بساز
+          # ساخت gradlew اگر نبود
           if [ ! -f "gradlew" ]; then
-            echo "gradlew not found, generating wrapper..."
+            echo "Generating gradle wrapper..."
             gradle wrapper --gradle-version 8.7
           fi
 
           chmod +x gradlew
 
-          # ساخت keystore دیباگ
-          if [ ! -f "debug.keystore" ]; then
-            keytool -genkey -v \
-              -keystore debug.keystore \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
-
           # بیلد
-          export JAVA_TOOL_OPTIONS="-Djava.awt.headless=true"
-          ./gradlew assembleDebug --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx3g -Djava.awt.headless=true" \
-            --stacktrace
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
+          name: debug-apk
           path: |
             **/app/build/outputs/apk/debug/*.apk
             **/build/outputs/apk/debug/*.apk
