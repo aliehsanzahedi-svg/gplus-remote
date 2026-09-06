@@ -1,7 +1,7 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch:   # فقط دستی اجرا بشه
+  workflow_dispatch:
   push:
     branches: [ main, master ]
 
@@ -23,7 +23,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Find Project & Build
+      - name: Find Project and Build
         run: |
           echo "===== Listing root files ====="
           ls -la
@@ -34,14 +34,12 @@ jobs:
             echo "Found ZIP: $ZIP_FILE"
             unzip -o "$ZIP_FILE" -d extracted
             cd extracted
-            # اگر داخل یک پوشه بود واردش شو
             if [ $(ls -1 | wc -l) -eq 1 ]; then
               cd $(ls -1)
             fi
           fi
 
           echo "===== Looking for project root ====="
-          # پیدا کردن پوشه‌ای که settings.gradle یا settings.gradle.kts داره
           if [ -f "settings.gradle" ] || [ -f "settings.gradle.kts" ]; then
             PROJ_DIR="."
           else
@@ -62,7 +60,7 @@ jobs:
 
           chmod +x gradlew
 
-          # ساخت keystore دیباگ (اگر نیاز باشه)
+          # ساخت keystore دیباگ
           if [ ! -f "debug.keystore" ]; then
             keytool -genkey -v \
               -keystore debug.keystore \
@@ -75,10 +73,17 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-          # بیلد با تنظیمات headless
+          # بیلد
           export JAVA_TOOL_OPTIONS="-Djava.awt.headless=true"
           ./gradlew assembleDebug --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx3g -Djava.awt.headless=true" \
             --stacktrace
 
       - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: |
+            **/app/build/outputs/apk/debug/*.apk
+            **/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
